@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>PulseMood — Daily Emotion Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
+        }
+        /* Custom Range Slider for Mobile Touch */
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 14px;
+            cursor: pointer;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #ef4444 0%, #f97316 25%, #eab308 50%, #84cc16 75%, #10b981 100%);
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 32px;
+            width: 32px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -9px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            border: 3px solid #1e293b;
+            transition: transform 0.15s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:active {
+            transform: scale(1.18);
+        }
+        /* Hide scrollbars while keeping scroll functionality */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center selection:bg-indigo-500 selection:text-white">
+
+    <!-- Mobile App Shell Container -->
+    <div class="w-full max-w-md min-h-screen bg-slate-900 flex flex-col justify-between relative shadow-2xl border-x border-slate-800/60 pb-20">
+        
+        <!-- Top App Bar -->
+        <header class="sticky top-0 z-20 bg-slate-900/90 backdrop-blur-md px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <span class="text-lg">✨</span>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold tracking-tight text-white leading-none">PulseMood</h1>
+                    <p id="syncStatus" class="text-[11px] text-emerald-400 font-medium mt-1 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Ready
+                    </p>
+                </div>
+            </div>
+            <button id="todayQuickBtn" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs font-semibold text-indigo-300 border border-slate-700 transition">
+                Log Today
+            </button>
+        </header>
+
+        <!-- Main Scrollable Viewport -->
+        <main class="flex-1 overflow-y-auto px-4 py-4 space-y-5 no-scrollbar">
+
+            <!-- ================= VIEW 1: CALENDAR & LOGGER ================= -->
+            <section id="view-calendar" class="space-y-4">
+                
+                <!-- Month Navigation Card -->
+                <div class="bg-slate-800/70 border border-slate-700/70 rounded-2xl p-4 shadow-lg">
+                    <div class="flex items-center justify-between mb-4">
+                        <button id="prevMonthBtn" class="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-700 active:scale-95 text-slate-300 transition" aria-label="Previous Month">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        </button>
+                        <div class="text-center">
+                            <h2 id="currentMonthLabel" class="text-base font-bold text-white">Month Year</h2>
+                            <p class="text-[11px] text-slate-400">Tap any date to log or view mood</p>
+                        </div>
+                        <button id="nextMonthBtn" class="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-700 active:scale-95 text-slate-300 transition" aria-label="Next Month">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>
+
+                    <!-- Day Headers -->
+                    <div class="grid grid-cols-7 gap-1.5 text-center mb-2">
+                        <div class="text-[11px] font-semibold text-slate-400">Sun</div>
+                        <div class="text-[11px] font-semibold text-slate-400">Mon</div>
+                        <div class="text-[11px] font-semibold text-slate-400">Tue</div>
+                        <div class="text-[11px] font-semibold text-slate-400">Wed</div>
+                        <div class="text-[11px] font-semibold text-slate-400">Thu</div>
+                        <div class="text-[11px] font-semibold text-slate-400">Fri</div>
+                        <div class="text-[11px] font-semibold text-slate-400">Sat</div>
+                    </div>
+
+                    <!-- Calendar Days Grid -->
+                    <div id="calendarGrid" class="grid grid-cols-7 gap-1.5"></div>
+                </div>
+
+                <!-- Selected Day Mood Entry Editor -->
+                <div id="dayEditorCard" class="bg-slate-800/90 border border-slate-700 rounded-2xl p-5 shadow-xl space-y-5 transition-all">
+                    <div class="flex items-center justify-between border-b border-slate-700/80 pb-3">
+                        <div>
+                            <span class="text-[11px] uppercase tracking-wider font-bold text-indigo-400">Selected Date</span>
+                            <h3 id="selectedDateDisplay" class="text-lg font-bold text-white">Today</h3>
+                        </div>
+                        <div id="entryBadge" class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-700 text-slate-300">
+                            Not Logged
+                        </div>
+                    </div>
+
+                    <!-- Mood Display & Emoji Preview -->
+                    <div class="flex items-center justify-between bg-slate-900/90 p-4 rounded-2xl border border-slate-800">
+                        <div class="flex items-center gap-3.5">
+                            <div id="moodEmojiPreview" class="text-4xl select-none transition-transform duration-200">🙂</div>
+                            <div>
+                                <div class="text-xs text-slate-400 font-medium">Mood Rating</div>
+                                <div id="moodLabelText" class="text-base font-bold text-white">Balanced & Okay</div>
+                            </div>
+                        </div>
+                        <div id="moodScoreBadge" class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-extrabold text-slate-950 shadow-md transition-colors">
+                            6
+                        </div>
+                    </div>
+
+                    <!-- 1 to 10 Slider -->
+                    <div class="space-y-2 pt-1">
+                        <div class="flex justify-between text-xs font-semibold text-slate-400 px-1">
+                            <span>1 (Lowest)</span>
+                            <span>5 (Neutral)</span>
+                            <span>10 (Best)</span>
+                        </div>
+                        <input id="moodSlider" type="range" min="1" max="10" step="1" value="6" class="w-full">
+                        <!-- Quick Tap Number Pills -->
+                        <div id="quickNumberRow" class="grid grid-cols-10 gap-1 pt-2"></div>
+                    </div>
+
+                    <!-- Optional Note Input -->
+                    <div class="space-y-1.5">
+                        <label for="moodNoteInput" class="block text-xs font-semibold text-slate-300">
+                            Daily Note <span class="text-slate-500 font-normal">(Optional)</span>
+                        </label>
+                        <textarea id="moodNoteInput" rows="3" placeholder="What influenced your emotions today? Any highlights or thoughts..." 
+                            class="w-full rounded-xl bg-slate-900 border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm text-white placeholder-slate-500 p-3 outline-none resize-none transition"></textarea>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex items-center gap-2.5 pt-1">
+                        <button id="saveEntryBtn" class="flex-1 py-3.5 px-4 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 active:scale-[0.98] text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                            <span>Save Mood Entry</span>
+                        </button>
+                        <button id="deleteEntryBtn" class="hidden p-3.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 active:scale-95 text-rose-400 border border-rose-500/30 transition" title="Delete Entry" aria-label="Delete Entry">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= VIEW 2: EMOTIONAL GRAPH ================= -->
+            <section id="view-graph" class="hidden space-y-4">
+                
+                <!-- KPI Summary Row -->
+                <div class="grid grid-cols-3 gap-2.5">
+                    <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-3.5 text-center">
+                        <p class="text-[11px] text-slate-400 font-medium">Average</p>
+                        <p id="statAvgMood" class="text-xl font-extrabold text-white mt-0.5">—</p>
+                    </div>
+                    <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-3.5 text-center">
+                        <p class="text-[11px] text-slate-400 font-medium">Entries</p>
+                        <p id="statTotalEntries" class="text-xl font-extrabold text-indigo-400 mt-0.5">0</p>
+                    </div>
+                    <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-3.5 text-center">
+                        <p class="text-[11px] text-slate-400 font-medium">Best Mood</p>
+                        <p id="statPeakMood" class="text-xl font-extrabold text-emerald-400 mt-0.5">—</p>
+                    </div>
+                </div>
+
+                <!-- Interactive Graph Card -->
+                <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 shadow-lg space-y-3">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <div>
+                            <h2 class="text-base font-bold text-white">Emotional Flow</h2>
+                            <p class="text-[11px] text-slate-400">Tap any point on the graph to inspect</p>
+                        </div>
+                        <!-- Range Filter Pills -->
+                        <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-700/70 text-xs font-semibold">
+                            <button data-range="7" class="graph-range-btn px-2.5 py-1 rounded-lg bg-indigo-600 text-white transition">7D</button>
+                            <button data-range="30" class="graph-range-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition">30D</button>
+                            <button data-range="all" class="graph-range-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition">All</button>
+                        </div>
+                    </div>
+
+                    <!-- Responsive Canvas Container -->
+                    <div class="relative w-full h-64 bg-slate-900/90 rounded-xl border border-slate-800 p-2 overflow-hidden">
+                        <canvas id="emotionChartCanvas" class="w-full h-full block cursor-pointer"></canvas>
+                        <div id="graphEmptyState" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+                            <span class="text-3xl mb-2">📈</span>
+                            <p class="text-sm font-semibold text-slate-300">No mood data in this range yet</p>
+                            <p class="text-xs text-slate-500 mt-1">Log your daily mood on the Calendar tab to watch your emotional graph come to life.</p>
+                        </div>
+                    </div>
+
+                    <!-- Tapped Data Point Inspector -->
+                    <div id="graphPointInspector" class="hidden bg-slate-900 border border-slate-700 rounded-xl p-3.5 flex items-start justify-between gap-3">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span id="inspectEmoji" class="text-xl">😊</span>
+                                <span id="inspectDate" class="text-xs font-bold text-indigo-400">Date</span>
+                                <span id="inspectScore" class="px-2 py-0.5 rounded-md text-xs font-bold bg-slate-800 text-white">8/10</span>
+                            </div>
+                            <p id="inspectNote" class="text-xs text-slate-300 leading-relaxed">Note content</p>
+                        </div>
+                        <button id="inspectEditBtn" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-indigo-300 shrink-0">
+                            Edit
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mood Distribution Bar Card -->
+                <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 shadow-lg space-y-3">
+                    <h3 class="text-sm font-bold text-white">Mood Zone Breakdown</h3>
+                    <div id="moodZoneBreakdown" class="space-y-2.5 text-xs"></div>
+                </div>
+            </section>
+
+            <!-- ================= VIEW 3: JOURNAL & BACKUP ================= -->
+            <section id="view-journal" class="hidden space-y-4">
+                <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 shadow-lg space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-base font-bold text-white">Mood History & Notes</h2>
+                            <p class="text-[11px] text-slate-400">All recorded days sorted newest first</p>
+                        </div>
+                        <button id="exportDataBtn" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-700 text-xs font-semibold text-indigo-300 border border-slate-700 transition">
+                            Export JSON
+                        </button>
+                    </div>
+                    <div id="journalList" class="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1 no-scrollbar"></div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Toast Feedback Banner -->
+        <div id="toastBanner" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 pointer-events-none opacity-0 translate-y-2 transition-all duration-200 bg-emerald-500 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-full shadow-xl flex items-center gap-2">
+            <span>✓</span>
+            <span id="toastMessage">Saved!</span>
+        </div>
+
+        <!-- Bottom Mobile Navigation Bar -->
+        <nav class="fixed bottom-0 w-full max-w-md bg-slate-900/95 backdrop-blur-md border-t border-slate-800 grid grid-cols-3 py-2 px-3 z-30">
+            <button data-target="calendar" class="nav-tab-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-indigo-400 font-semibold transition">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span class="text-[11px]">Calendar</span>
+            </button>
+            <button data-target="graph" class="nav-tab-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-400 hover:text-slate-200 font-semibold transition">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+                <span class="text-[11px]">Emotion Graph</span>
+            </button>
+            <button data-target="journal" class="nav-tab-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-400 hover:text-slate-200 font-semibold transition">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span class="text-[11px]">History</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Application Logic & Cloud/Device Persistence -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // 1-10 Scale Metadata (Color, Emoji, Description)
+        const MOOD_META = {
+            1:  { emoji: "⛈️", label: "Overwhelmed / Awful", color: "#ef4444", textClass: "text-red-400" },
+            2:  { emoji: "😢", label: "Very Low & Heavy",   color: "#f97316", textClass: "text-orange-400" },
+            3:  { emoji: "😞", label: "Down & Drained",     color: "#fb923c", textClass: "text-orange-300" },
+            4:  { emoji: "😕", label: "A Bit Off / Meh",    color: "#facc15", textClass: "text-yellow-300" },
+            5:  { emoji: "😐", label: "Neutral / Steady",   color: "#eab308", textClass: "text-yellow-400" },
+            6:  { emoji: "🙂", label: "Balanced & Okay",    color: "#a3e635", textClass: "text-lime-400" },
+            7:  { emoji: "😊", label: "Good & Positive",    color: "#4ade80", textClass: "text-green-400" },
+            8:  { emoji: "😄", label: "Great & Energized",  color: "#34d399", textClass: "text-emerald-400" },
+            9:  { emoji: "🤩", label: "Joyful & Thriving",  color: "#10b981", textClass: "text-emerald-300" },
+            10: { emoji: "🌟", label: "Peak / Amazing!",    color: "#06b6d4", textClass: "text-cyan-300" }
+        };
+
+        // State Management
+        let moodEntries = {}; // { "YYYY-MM-DD": { dateStr, rating, note, updatedAt } }
+        let todayDate = new Date();
+        let currentMonth = todayDate.getMonth();
+        let currentYear = todayDate.getFullYear();
+        let selectedDateStr = formatDateKey(todayDate);
+        let activeTab = "calendar";
+        let graphRange = "7"; // '7' | '30' | 'all'
+        let chartPointsHitboxes = []; // For tap-to-inspect on canvas
+
+        // IndexedDB Fallback for Standalone Phone APK/HTML Usage
+        const IDB_NAME = "PulseMoodPhoneDB";
+        const IDB_STORE = "mood_logs";
+
+        function openIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(IDB_NAME, 1);
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(IDB_STORE)) {
+                        db.createObjectStore(IDB_STORE, { keyPath: "dateStr" });
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function loadFromIndexedDB() {
+            try {
+                const db = await openIndexedDB();
+                return new Promise((resolve) => {
+                    const tx = db.transaction(IDB_STORE, "readonly");
+                    const store = tx.objectStore(IDB_STORE);
+                    const req = store.getAll();
+                    req.onsuccess = () => {
+                        const map = {};
+                        (req.result || []).forEach(item => { map[item.dateStr] = item; });
+                        resolve(map);
+                    };
+                    req.onerror = () => resolve({});
+                });
+            } catch (e) {
+                return {};
+            }
+        }
+
+        async function saveToIndexedDB(entry) {
+            try {
+                const db = await openIndexedDB();
+                const tx = db.transaction(IDB_STORE, "readwrite");
+                tx.objectStore(IDB_STORE).put(entry);
+            } catch (e) {
+                console.error("IDB save error:", e);
+            }
+        }
+
+        async function removeFromIndexedDB(dateStr) {
+            try {
+                const db = await openIndexedDB();
+                const tx = db.transaction(IDB_STORE, "readwrite");
+                tx.objectStore(IDB_STORE).delete(dateStr);
+            } catch (e) {
+                console.error("IDB delete error:", e);
+            }
+        }
+
+        // Cloud Firestore Setup (if running in cloud environment)
+        let firestoreDb = null;
+        let currentUser = null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'pulsemood-app';
+
+        async function initPersistence() {
+            // 1. Load local device IndexedDB immediately so offline phone app works 100% of the time
+            const localData = await loadFromIndexedDB();
+            moodEntries = { ...localData };
+            refreshAllViews();
+
+            // 2. Connect Cloud Sync if config is injected
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                try {
+                    const firebaseConfig = JSON.parse(__firebase_config);
+                    const app = initializeApp(firebaseConfig);
+                    const auth = getAuth(app);
+                    firestoreDb = getFirestore(app);
+
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    onAuthStateChanged(auth, (user) => {
+                        currentUser = user;
+                        if (user) {
+                            const colRef = collection(firestoreDb, 'artifacts', appId, 'users', user.uid, 'moodEntries');
+                            onSnapshot(colRef, (snapshot) => {
+                                snapshot.docs.forEach(docSnap => {
+                                    const data = docSnap.data();
+                                    if (data && data.dateStr) {
+                                        moodEntries[data.dateStr] = data;
+                                        saveToIndexedDB(data);
+                                    }
+                                });
+                                updateStatusBadge("Saved & Synced");
+                                refreshAllViews();
+                            }, (err) => {
+                                console.warn("Firestore sync fallback to device storage:", err);
+                                updateStatusBadge("Saved on Device");
+                            });
+                        }
+                    });
+                } catch (err) {
+                    updateStatusBadge("Saved on Device");
+                }
+            } else {
+                updateStatusBadge("Saved on Phone");
+            }
+        }
+
+        function updateStatusBadge(text) {
+            const el = document.getElementById("syncStatus");
+            if (el) {
+                el.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> ${text}`;
+            }
+        }
+
+        // Date Formatting Helpers
+        function formatDateKey(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function formatHumanDate(dateStr) {
+            const [y, m, d] = dateStr.split('-').map(Number);
+            const dateObj = new Date(y, m - 1, d);
+            const todayKey = formatDateKey(new Date());
+            const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+            const formatted = dateObj.toLocaleDateString(undefined, options);
+            return dateStr === todayKey ? `Today (${formatted})` : formatted;
+        }
+
+        function formatShortDate(dateStr) {
+            const [y, m, d] = dateStr.split('-').map(Number);
+            const dateObj = new Date(y, m - 1, d);
+            return dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        }
+
+        // UI Elements
+        const calendarGrid = document.getElementById("calendarGrid");
+        const currentMonthLabel = document.getElementById("currentMonthLabel");
+        const selectedDateDisplay = document.getElementById("selectedDateDisplay");
+        const entryBadge = document.getElementById("entryBadge");
+        const moodEmojiPreview = document.getElementById("moodEmojiPreview");
+        const moodLabelText = document.getElementById("moodLabelText");
+        const moodScoreBadge = document.getElementById("moodScoreBadge");
+        const moodSlider = document.getElementById("moodSlider");
+        const quickNumberRow = document.getElementById("quickNumberRow");
+        const moodNoteInput = document.getElementById("moodNoteInput");
+        const saveEntryBtn = document.getElementById("saveEntryBtn");
+        const deleteEntryBtn = document.getElementById("deleteEntryBtn");
+
+        // Render Quick 1-10 Number Buttons under Slider
+        function renderQuickNumberButtons(activeVal) {
+            quickNumberRow.innerHTML = "";
+            for (let i = 1; i <= 10; i++) {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                const isSelected = Number(activeVal) === i;
+                btn.className = `py-1.5 rounded-lg text-xs font-bold transition active:scale-90 ${
+                    isSelected 
+                        ? "bg-white text-slate-950 shadow-sm scale-105" 
+                        : "bg-slate-900/90 text-slate-400 hover:text-white border border-slate-800"
+                }`;
+                btn.textContent = i;
+                btn.addEventListener("click", () => {
+                    moodSlider.value = i;
+                    updateSliderPreview(i);
+                });
+                quickNumberRow.appendChild(btn);
+            }
+        }
+
+        function updateSliderPreview(val) {
+            const rating = Number(val);
+            const meta = MOOD_META[rating] || MOOD_META[6];
+            moodEmojiPreview.textContent = meta.emoji;
+            moodLabelText.textContent = meta.label;
+            moodScoreBadge.textContent = rating;
+            moodScoreBadge.style.backgroundColor = meta.color;
+            renderQuickNumberButtons(rating);
+        }
+
+        // Render Monthly Calendar Grid
+        function renderCalendar() {
+            calendarGrid.innerHTML = "";
+            const monthNames = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ];
+            currentMonthLabel.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+            const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const todayKey = formatDateKey(new Date());
+
+            // Blank leading cells
+            for (let i = 0; i < firstDayOfWeek; i++) {
+                const emptyCell = document.createElement("div");
+                emptyCell.className = "h-12 rounded-xl bg-slate-900/25";
+                calendarGrid.appendChild(emptyCell);
+            }
+
+            // Day cells
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const entry = moodEntries[dateStr];
+                const isSelected = dateStr === selectedDateStr;
+                const isToday = dateStr === todayKey;
+
+                const cell = document.createElement("button");
+                cell.type = "button";
+                cell.className = `h-12 rounded-xl flex flex-col items-center justify-center relative transition active:scale-95 select-none border ${
+                    isSelected 
+                        ? "ring-2 ring-indigo-400 border-indigo-400 bg-slate-800 shadow-md" 
+                        : isToday 
+                            ? "border-indigo-500/60 bg-slate-900/90" 
+                            : "border-slate-800/80 bg-slate-900/60 hover:bg-slate-800/70"
+                }`;
+
+                if (entry) {
+                    const meta = MOOD_META[entry.rating] || MOOD_META[6];
+                    cell.style.backgroundColor = `${meta.color}22`;
+                    cell.style.borderColor = isSelected ? "#818cf8" : `${meta.color}66`;
+
+                    cell.innerHTML = `
+                        <span class="text-[11px] font-bold text-white leading-none">${day}</span>
+                        <span class="text-[11px] font-extrabold mt-1 px-1.5 py-0.2 rounded-full text-slate-950 leading-tight" style="background:${meta.color}">
+                            ${entry.rating}
+                        </span>
+                        ${entry.note && entry.note.trim() !== "" ? `<span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-white shadow"></span>` : ""}
+                    `;
+                } else {
+                    cell.innerHTML = `
+                        <span class="text-xs font-medium ${isToday ? 'text-indigo-400 font-bold' : 'text-slate-300'}">${day}</span>
+                        <span class="text-[10px] text-slate-600 mt-0.5">•</span>
+                    `;
+                }
+
+                cell.addEventListener("click", () => {
+                    selectDate(dateStr);
+                });
+
+                calendarGrid.appendChild(cell);
+            }
+        }
+
+        function selectDate(dateStr) {
+            selectedDateStr = dateStr;
+            selectedDateDisplay.textContent = formatHumanDate(dateStr);
+            const existing = moodEntries[dateStr];
+
+            if (existing) {
+                moodSlider.value = existing.rating;
+                updateSliderPreview(existing.rating);
+                moodNoteInput.value = existing.note || "";
+                entryBadge.textContent = `Logged (${existing.rating}/10)`;
+                entryBadge.className = "px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+                deleteEntryBtn.classList.remove("hidden");
+            } else {
+                moodSlider.value = 6;
+                updateSliderPreview(6);
+                moodNoteInput.value = "";
+                entryBadge.textContent = "Not Logged";
+                entryBadge.className = "px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-700 text-slate-300";
+                deleteEntryBtn.classList.add("hidden");
+            }
+
+            renderCalendar();
+        }
+
+        // Save or Update Entry
+        async function saveCurrentEntry() {
+            const rating = Number(moodSlider.value);
+            const note = moodNoteInput.value.trim();
+            const entry = {
+                dateStr: selectedDateStr,
+                rating,
+                note,
+                updatedAt: Date.now()
+            };
+
+            moodEntries[selectedDateStr] = entry;
+            await saveToIndexedDB(entry);
+
+            if (firestoreDb && currentUser) {
+                try {
+                    const docRef = doc(firestoreDb, 'artifacts', appId, 'users', currentUser.uid, 'moodEntries', selectedDateStr);
+                    await setDoc(docRef, entry);
+                } catch (e) {
+                    console.warn("Cloud write deferred:", e);
+                }
+            }
+
+            showToast(`Saved mood (${rating}/10) for ${formatShortDate(selectedDateStr)}`);
+            selectDate(selectedDateStr);
+            refreshAllViews();
+        }
+
+        // Delete Entry
+        async function deleteCurrentEntry() {
+            if (!moodEntries[selectedDateStr]) return;
+            delete moodEntries[selectedDateStr];
+            await removeFromIndexedDB(selectedDateStr);
+
+            if (firestoreDb && currentUser) {
+                try {
+                    const docRef = doc(firestoreDb, 'artifacts', appId, 'users', currentUser.uid, 'moodEntries', selectedDateStr);
+                    await deleteDoc(docRef);
+                } catch (e) {
+                    console.warn("Cloud delete error:", e);
+                }
+            }
+
+            showToast("Entry removed");
+            selectDate(selectedDateStr);
+            refreshAllViews();
+        }
+
+        // ================= EMOTIONAL GRAPH RENDERER =================
+        function getFilteredSortedEntries() {
+            const allList = Object.values(moodEntries).sort((a, b) => a.dateStr.localeCompare(b.dateStr));
+            if (graphRange === "all") return allList;
+
+            const daysLimit = parseInt(graphRange, 10);
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - (daysLimit - 1));
+            const cutoffKey = formatDateKey(cutoff);
+            return allList.filter(item => item.dateStr >= cutoffKey);
+        }
+
+        function renderEmotionalGraph() {
+            const canvas = document.getElementById("emotionChartCanvas");
+            const emptyState = document.getElementById("graphEmptyState");
+            if (!canvas) return;
+
+            const entries = getFilteredSortedEntries();
+            const allEntries = Object.values(moodEntries);
+
+            // Update Top Stats
+            document.getElementById("statTotalEntries").textContent = allEntries.length;
+            if (allEntries.length > 0) {
+                const sum = allEntries.reduce((acc, e) => acc + Number(e.rating), 0);
+                const avg = (sum / allEntries.length).toFixed(1);
+                const max = Math.max(...allEntries.map(e => Number(e.rating)));
+                document.getElementById("statAvgMood").textContent = `${avg}/10`;
+                document.getElementById("statPeakMood").textContent = `${max}/10 ${MOOD_META[max]?.emoji || ''}`;
+            } else {
+                document.getElementById("statAvgMood").textContent = "—";
+                document.getElementById("statPeakMood").textContent = "—";
+            }
+
+            renderZoneBreakdown(allEntries);
+
+            const rect = canvas.parentElement.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            const width = Math.max(rect.width - 16, 260);
+            const height = Math.max(rect.height - 16, 220);
+
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            const ctx = canvas.getContext("2d");
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, width, height);
+
+            chartPointsHitboxes = [];
+
+            if (entries.length === 0) {
+                emptyState.classList.remove("hidden");
+                document.getElementById("graphPointInspector").classList.add("hidden");
+                return;
+            }
+            emptyState.classList.add("hidden");
+
+            const padLeft = 30;
+            const padRight = 18;
+            const padTop = 20;
+            const padBottom = 32;
+            const plotW = width - padLeft - padRight;
+            const plotH = height - padTop - padBottom;
+
+            // Draw Horizontal Grid Lines (Levels 2, 4, 6, 8, 10)
+            ctx.lineWidth = 1;
+            ctx.font = "600 10px Inter, sans-serif";
+            ctx.textAlign = "right";
+            ctx.textBaseline = "middle";
+
+            for (let lvl = 2; lvl <= 10; lvl += 2) {
+                const y = padTop + plotH - ((lvl - 1) / 9) * plotH;
+                ctx.strokeStyle = "rgba(148, 163, 184, 0.14)";
+                ctx.beginPath();
+                ctx.moveTo(padLeft, y);
+                ctx.lineTo(width - padRight, y);
+                ctx.stroke();
+
+                ctx.fillStyle = "#64748b";
+                ctx.fillText(String(lvl), padLeft - 8, y);
+            }
+
+            // Compute Coordinates
+            const coords = entries.map((entry, idx) => {
+                const x = entries.length === 1
+                    ? padLeft + plotW / 2
+                    : padLeft + (idx / (entries.length - 1)) * plotW;
+                const y = padTop + plotH - ((entry.rating - 1) / 9) * plotH;
+                return { x, y, entry };
+            });
+
+            // Draw Smooth Area Gradient under the curve
+            if (coords.length > 1) {
+                const areaGrad = ctx.createLinearGradient(0, padTop, 0, padTop + plotH);
+                areaGrad.addColorStop(0, "rgba(99, 102, 241, 0.40)");
+                areaGrad.addColorStop(1, "rgba(99, 102, 241, 0.0)");
+
+                ctx.beginPath();
+                ctx.moveTo(coords[0].x, padTop + plotH);
+                coords.forEach((pt, i) => {
+                    if (i === 0) {
+                        ctx.lineTo(pt.x, pt.y);
+                    } else {
+                        const prev = coords[i - 1];
+                        const cx = (prev.x + pt.x) / 2;
+                        ctx.bezierCurveTo(cx, prev.y, cx, pt.y, pt.x, pt.y);
+                    }
+                });
+                ctx.lineTo(coords[coords.length - 1].x, padTop + plotH);
+                ctx.closePath();
+                ctx.fillStyle = areaGrad;
+                ctx.fill();
+
+                // Draw Smooth Emotion Line
+                const lineGrad = ctx.createLinearGradient(padLeft, 0, width - padRight, 0);
+                lineGrad.addColorStop(0, "#818cf8");
+                lineGrad.addColorStop(0.5, "#c084fc");
+                lineGrad.addColorStop(1, "#34d399");
+
+                ctx.beginPath();
+                coords.forEach((pt, i) => {
+                    if (i === 0) {
+                        ctx.moveTo(pt.x, pt.y);
+                    } else {
+                        const prev = coords[i - 1];
+                        const cx = (prev.x + pt.x) / 2;
+                        ctx.bezierCurveTo(cx, prev.y, cx, pt.y, pt.x, pt.y);
+                    }
+                });
+                ctx.strokeStyle = lineGrad;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+
+            // Draw Date Labels & Data Nodes
+            const labelStep = Math.max(1, Math.ceil(coords.length / 5));
+            coords.forEach((pt, idx) => {
+                const meta = MOOD_META[pt.entry.rating] || MOOD_META[6];
+
+                // X-axis Date label
+                if (idx % labelStep === 0 || idx === coords.length - 1) {
+                    ctx.fillStyle = "#94a3b8";
+                    ctx.font = "500 10px Inter, sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.fillText(formatShortDate(pt.entry.dateStr), pt.x, height - 12);
+                }
+
+                // Outer Glow
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2);
+                ctx.fillStyle = `${meta.color}33`;
+                ctx.fill();
+
+                // Colored Dot
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
+                ctx.fillStyle = meta.color;
+                ctx.fill();
+                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = "#0f172a";
+                ctx.stroke();
+
+                chartPointsHitboxes.push({ x: pt.x, y: pt.y, entry: pt.entry });
+            });
+
+            // Show latest entry in inspector by default
+            const latest = coords[coords.length - 1]?.entry;
+            if (latest) showPointInspector(latest);
+        }
+
+        function showPointInspector(entry) {
+            const box = document.getElementById("graphPointInspector");
+            const meta = MOOD_META[entry.rating] || MOOD_META[6];
+            box.classList.remove("hidden");
+            document.getElementById("inspectEmoji").textContent = meta.emoji;
+            document.getElementById("inspectDate").textContent = formatHumanDate(entry.dateStr);
+            document.getElementById("inspectScore").textContent = `${entry.rating}/10 — ${meta.label}`;
+            document.getElementById("inspectNote").textContent = entry.note
+                ? `"${entry.note}"`
+                : "No note attached for this day.";
+
+            document.getElementById("inspectEditBtn").onclick = () => {
+                const [y, m] = entry.dateStr.split('-').map(Number);
+                currentYear = y;
+                currentMonth = m - 1;
+                selectDate(entry.dateStr);
+                switchTab("calendar");
+            };
+        }
+
+        function renderZoneBreakdown(allEntries) {
+            const container = document.getElementById("moodZoneBreakdown");
+            const total = allEntries.length || 1;
+            const zones = [
+                { label: "High Spirits (8 - 10)", count: allEntries.filter(e => e.rating >= 8).length, color: "bg-emerald-400" },
+                { label: "Balanced / Steady (5 - 7)", count: allEntries.filter(e => e.rating >= 5 && e.rating <= 7).length, color: "bg-lime-400" },
+                { label: "Challenging / Low (1 - 4)", count: allEntries.filter(e => e.rating <= 4).length, color: "bg-orange-400" }
+            ];
+
+            container.innerHTML = zones.map(z => {
+                const pct = allEntries.length ? Math.round((z.count / total) * 100) : 0;
+                return `
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-slate-300 font-medium">
+                            <span>${z.label}</span>
+                            <span class="font-bold text-white">${z.count} days (${pct}%)</span>
+                        </div>
+                        <div class="w-full h-2 rounded-full bg-slate-900 overflow-hidden">
+                            <div class="h-full ${z.color} rounded-full transition-all duration-300" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        // ================= HISTORY / JOURNAL LIST =================
+        function renderJournalList() {
+            const listEl = document.getElementById("journalList");
+            const sorted = Object.values(moodEntries).sort((a, b) => b.dateStr.localeCompare(a.dateStr));
+
+            if (sorted.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-center py-10 text-slate-500">
+                        <div class="text-3xl mb-2">📓</div>
+                        <p class="text-sm font-semibold text-slate-300">Your mood journal is empty</p>
+                        <p class="text-xs mt-1">Select a date on the calendar to log your first entry.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = sorted.map(item => {
+                const meta = MOOD_META[item.rating] || MOOD_META[6];
+                return `
+                    <div data-date="${item.dateStr}" class="journal-item-card p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 flex items-start justify-between gap-3 cursor-pointer transition">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-extrabold text-slate-950 shrink-0 mt-0.5" style="background:${meta.color}">
+                                ${item.rating}
+                            </div>
+                            <div class="space-y-0.5">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs font-bold text-white">${formatHumanDate(item.dateStr)}</span>
+                                    <span>${meta.emoji}</span>
+                                </div>
+                                <div class="text-[11px] font-semibold text-slate-400">${meta.label}</div>
+                                ${item.note ? `<p class="text-xs text-slate-300 pt-1 leading-relaxed break-words">${escapeHtml(item.note)}</p>` : ''}
+                            </div>
+                        </div>
+                        <span class="text-[11px] text-indigo-400 font-semibold shrink-0">Edit</span>
+                    </div>
+                `;
+            }).join("");
+
+            listEl.querySelectorAll(".journal-item-card").forEach(card => {
+                card.addEventListener("click", () => {
+                    const d = card.getAttribute("data-date");
+                    const [y, m] = d.split('-').map(Number);
+                    currentYear = y;
+                    currentMonth = m - 1;
+                    selectDate(d);
+                    switchTab("calendar");
+                });
+            });
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, m => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[m]));
+        }
+
+        function showToast(msg) {
+            const banner = document.getElementById("toastBanner");
+            document.getElementById("toastMessage").textContent = msg;
+            banner.classList.remove("opacity-0", "translate-y-2");
+            banner.classList.add("opacity-100", "translate-y-0");
+            clearTimeout(window.__toastTimer);
+            window.__toastTimer = setTimeout(() => {
+                banner.classList.add("opacity-0", "translate-y-2");
+                banner.classList.remove("opacity-100", "translate-y-0");
+            }, 2200);
+        }
+
+        function switchTab(tabName) {
+            activeTab = tabName;
+            ["calendar", "graph", "journal"].forEach(t => {
+                const section = document.getElementById(`view-${t}`);
+                if (t === tabName) {
+                    section.classList.remove("hidden");
+                } else {
+                    section.classList.add("hidden");
+                }
+            });
+
+            document.querySelectorAll(".nav-tab-btn").forEach(btn => {
+                const isTarget = btn.getAttribute("data-target") === tabName;
+                btn.className = `nav-tab-btn flex flex-col items-center justify-center py-1.5 rounded-xl font-semibold transition ${
+                    isTarget ? "text-indigo-400 bg-slate-800/60" : "text-slate-400 hover:text-slate-200"
+                }`;
+            });
+
+            if (tabName === "graph") {
+                requestAnimationFrame(() => renderEmotionalGraph());
+            } else if (tabName === "journal") {
+                renderJournalList();
+            }
+        }
+
+        function refreshAllViews() {
+            renderCalendar();
+            if (activeTab === "graph") renderEmotionalGraph();
+            if (activeTab === "journal") renderJournalList();
+        }
+
+        // Event Listeners Setup
+        moodSlider.addEventListener("input", (e) => {
+            updateSliderPreview(e.target.value);
+        });
+
+        saveEntryBtn.addEventListener("click", saveCurrentEntry);
+        deleteEntryBtn.addEventListener("click", deleteCurrentEntry);
+
+        document.getElementById("prevMonthBtn").addEventListener("click", () => {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar();
+        });
+
+        document.getElementById("nextMonthBtn").addEventListener("click", () => {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar();
+        });
+
+        document.getElementById("todayQuickBtn").addEventListener("click", () => {
+            const now = new Date();
+            currentYear = now.getFullYear();
+            currentMonth = now.getMonth();
+            selectDate(formatDateKey(now));
+            switchTab("calendar");
+        });
+
+        document.querySelectorAll(".nav-tab-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                switchTab(btn.getAttribute("data-target"));
+            });
+        });
+
+        document.querySelectorAll(".graph-range-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                graphRange = btn.getAttribute("data-range");
+                document.querySelectorAll(".graph-range-btn").forEach(b => {
+                    b.className = b === btn
+                        ? "graph-range-btn px-2.5 py-1 rounded-lg bg-indigo-600 text-white transition"
+                        : "graph-range-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition";
+                });
+                renderEmotionalGraph();
+            });
+        });
+
+        // Canvas Tap Interaction for Mobile
+        const chartCanvas = document.getElementById("emotionChartCanvas");
+        chartCanvas.addEventListener("click", (e) => {
+            if (!chartPointsHitboxes.length) return;
+            const rect = chartCanvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            let closest = null;
+            let minDist = 36; // Generous finger touch radius
+            chartPointsHitboxes.forEach(pt => {
+                const dist = Math.hypot(pt.x - clickX, pt.y - clickY);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = pt.entry;
+                }
+            });
+
+            if (closest) {
+                showPointInspector(closest);
+            }
+        });
+
+        // Export Backup JSON
+        document.getElementById("exportDataBtn").addEventListener("click", () => {
+            const dataStr = JSON.stringify(moodEntries, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `pulsemood-backup-${formatDateKey(new Date())}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("Backup JSON downloaded");
+        });
+
+        window.addEventListener("resize", () => {
+            if (activeTab === "graph") renderEmotionalGraph();
+        });
+
+        // Initialize App on Load
+        window.addEventListener("DOMContentLoaded", async () => {
+            await initPersistence();
+            selectDate(selectedDateStr);
+        });
+    </script>
+</body>
+</html>
